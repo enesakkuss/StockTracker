@@ -334,19 +334,23 @@
             </div>
 
             <div class="field-group">
-              <label for="tg-token">Bot Token</label>
+              <label for="tg-token">Bot Token <span style="font-size:0.8rem; font-weight:normal; color:#64748b;">(Hesabınızda kayıtlıysa boş bırakabilirsiniz)</span></label>
               <input type="password"
                      id="tg-token"
+                     name="st_telegram_bot_token"
                      placeholder="123456789:AAExampleToken..."
-                     autocomplete="off"
+                     autocomplete="new-password"
+                     data-lpignore="true"
                      spellcheck="false" />
             </div>
             <div class="field-group">
               <label for="tg-chat-id">Chat ID</label>
               <input type="text"
                      id="tg-chat-id"
+                     name="st_telegram_chat_id"
                      placeholder="123456789"
-                     autocomplete="off"
+                     autocomplete="new-password"
+                     data-lpignore="true"
                      spellcheck="false" />
             </div>
             <div class="helper-text">
@@ -465,8 +469,10 @@
                 <label for="view-tg-token">Telegram Bot Token (Güncellemek için yeni token girin)</label>
                 <input type="password"
                        id="view-tg-token"
+                       name="st_view_tg_token"
                        placeholder="123456789:AAExampleToken..."
-                       autocomplete="off"
+                       autocomplete="new-password"
+                       data-lpignore="true"
                        spellcheck="false" />
               </div>
 
@@ -474,8 +480,10 @@
                 <label for="view-tg-chat-id">Telegram Chat ID</label>
                 <input type="text"
                        id="view-tg-chat-id"
+                       name="st_view_tg_chat_id"
                        placeholder="123456789"
-                       autocomplete="off"
+                       autocomplete="new-password"
+                       data-lpignore="true"
                        spellcheck="false"
                        required />
               </div>

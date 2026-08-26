@@ -15,6 +15,8 @@ public class MonitorsController : ControllerBase
 {
     private readonly IStockMonitorService _monitorService;
     private readonly IStockCheckerService _checkerService;
+    private readonly IUserRepository? _userRepository;
+    private readonly ISecretProtector? _secretProtector;
     private readonly ILogger<MonitorsController> _logger;
     private readonly IUsageLimitService? _usageLimitService;
 
@@ -22,12 +24,16 @@ public class MonitorsController : ControllerBase
         IStockMonitorService monitorService,
         IStockCheckerService checkerService,
         ILogger<MonitorsController> logger,
-        IUsageLimitService? usageLimitService = null)
+        IUsageLimitService? usageLimitService = null,
+        IUserRepository? userRepository = null,
+        ISecretProtector? secretProtector = null)
     {
         _monitorService = monitorService;
         _checkerService = checkerService;
         _logger = logger;
         _usageLimitService = usageLimitService;
+        _userRepository = userRepository;
+        _secretProtector = secretProtector;
     }
 
     private int GetCurrentUserId()
@@ -94,9 +100,44 @@ public class MonitorsController : ControllerBase
             }
         }
 
+        var effectiveRequest = request;
+        if (_userRepository != null && _secretProtector != null &&
+            (string.IsNullOrWhiteSpace(effectiveRequest.TelegramBotToken) || string.IsNullOrWhiteSpace(effectiveRequest.TelegramChatId)))
+        {
+            var user = await _userRepository.GetByIdAsync(userId, cancellationToken);
+            if (user != null)
+            {
+                var token = effectiveRequest.TelegramBotToken;
+                var chatId = effectiveRequest.TelegramChatId;
+
+                if (string.IsNullOrWhiteSpace(token) && !string.IsNullOrWhiteSpace(user.ProtectedTelegramBotToken))
+                {
+                    try
+                    {
+                        token = _secretProtector.Unprotect(user.ProtectedTelegramBotToken);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogWarning(ex, "Failed to unprotect user Telegram token");
+                    }
+                }
+
+                if (string.IsNullOrWhiteSpace(chatId) && !string.IsNullOrWhiteSpace(user.TelegramChatId))
+                {
+                    chatId = user.TelegramChatId;
+                }
+
+                effectiveRequest = effectiveRequest with
+                {
+                    TelegramBotToken = token ?? string.Empty,
+                    TelegramChatId = chatId ?? string.Empty
+                };
+            }
+        }
+
         try
         {
-            var created = await _monitorService.CreateMonitorAsync(userId, request, cancellationToken);
+            var created = await _monitorService.CreateMonitorAsync(userId, effectiveRequest, cancellationToken);
             return CreatedAtAction(nameof(GetById), new { id = created.Id }, created);
         }
         catch (ArgumentException ex)

@@ -149,7 +149,10 @@ document.addEventListener('DOMContentLoaded', () => {
         window.UI.switchView(view);
         if (view === 'dashboard') loadDashboard();
         if (view === 'monitors') loadMonitors(currentMonitorsPage, currentMonitorsPageSize);
-        if (view === 'inspector') loadInspectorUsageInfo();
+        if (view === 'inspector') {
+          loadInspectorUsageInfo();
+          loadUserTelegramSettings();
+        }
         if (view === 'notifications') {
           loadSupportedStores();
           loadNotifications(1, currentNotifsPageSize);
@@ -840,15 +843,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const botToken = tgTokenInput.value.trim();
     const chatId = tgChatIdInput.value.trim();
 
-    if (!botToken) {
-      window.UI.setStatus(tgStatusMsg, '🔴 Lütfen Bot Token girin.', 'error');
-      return;
-    }
-    if (!chatId) {
-      window.UI.setStatus(tgStatusMsg, '🔴 Lütfen Chat ID girin.', 'error');
-      return;
-    }
-
     window.UI.setStatus(tgStatusMsg, 'Telegram bağlantısı test ediliyor...', 'loading', true);
     tgTestBtn.disabled = true;
 
@@ -870,16 +864,27 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
+  let userHasSavedTelegram = false;
+
   async function loadUserTelegramSettings() {
     if (!window.AuthManager.isAuthenticated()) return;
     try {
       const data = await window.apiClient.get('/api/users/me/telegram');
       if (data && data.isConfigured && data.chatId) {
+        userHasSavedTelegram = true;
         if (tgChatIdInput) tgChatIdInput.value = data.chatId;
-        if (data.maskedBotToken && tgTokenInput) tgTokenInput.placeholder = data.maskedBotToken;
-        if (tgConfigHint) tgConfigHint.style.display = 'block';
+        if (tgTokenInput) {
+          tgTokenInput.value = '';
+          tgTokenInput.placeholder = `Kayıtlı Profil Botu Kullanılacak (${data.maskedBotToken || '******'})`;
+        }
+        if (tgConfigHint) {
+          tgConfigHint.style.display = 'block';
+          tgConfigHint.innerHTML = `✅ <strong>Hesabınıza Bağlı Telegram:</strong> Profilinizde kayıtlı olan bot ve Chat ID (<strong>${window.UI.escapeHtml(data.chatId)}</strong>) otomatik kullanılır. Tekrar token girmenize gerek yoktur.`;
+        }
       } else {
+        userHasSavedTelegram = false;
         if (tgConfigHint) tgConfigHint.style.display = 'none';
+        if (tgTokenInput) tgTokenInput.placeholder = '123456789:AAExampleToken...';
       }
     } catch (err) {
       console.warn('Failed to load user Telegram settings:', err);
@@ -911,7 +916,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const botToken = tgTokenInput.value.trim();
     const chatId = tgChatIdInput.value.trim();
 
-    if (!botToken || !chatId) {
+    if (!userHasSavedTelegram && (!botToken || !chatId)) {
       window.UI.setStatus(startMonitorStatus, '🔴 Lütfen Telegram Bot Token ve Chat ID alanlarını doldurun.', 'error');
       return;
     }
