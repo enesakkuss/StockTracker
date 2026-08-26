@@ -44,7 +44,15 @@ public sealed class PlaywrightBrowserService : IBrowserService
             ExtraHTTPHeaders = new Dictionary<string, string>
             {
                 ["Accept-Language"] = "tr-TR,tr;q=0.9,en-US;q=0.8,en;q=0.7",
-                ["Accept"] = "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8"
+                ["Accept"] = "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8",
+                ["Sec-Ch-Ua"] = "\"Google Chrome\";v=\"131\", \"Chromium\";v=\"131\", \"Not_A Brand\";v=\"24\"",
+                ["Sec-Ch-Ua-Mobile"] = "?0",
+                ["Sec-Ch-Ua-Platform"] = "\"Windows\"",
+                ["Sec-Fetch-Dest"] = "document",
+                ["Sec-Fetch-Mode"] = "navigate",
+                ["Sec-Fetch-Site"] = "none",
+                ["Sec-Fetch-User"] = "?1",
+                ["Upgrade-Insecure-Requests"] = "1"
             }
         });
 

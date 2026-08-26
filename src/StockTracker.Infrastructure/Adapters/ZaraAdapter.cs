@@ -70,10 +70,12 @@ public class ZaraAdapter : IStoreAdapter, IInspectableAdapter
         {
             page = await _browserService.NewPageAsync();
 
-            // Stealth script to patch webdriver
+            // Stealth script to patch webdriver and navigator properties
             await page.AddInitScriptAsync(@"
                 Object.defineProperty(navigator, 'webdriver', { get: () => undefined });
-                window.chrome = { runtime: {} };
+                Object.defineProperty(navigator, 'plugins', { get: () => [1, 2, 3, 4, 5] });
+                Object.defineProperty(navigator, 'languages', { get: () => ['tr-TR', 'tr', 'en-US', 'en'] });
+                window.chrome = { runtime: {}, app: {}, loadTimes: function() {}, csi: function() {} };
             ");
 
             // Intercept background product json responses if any
