@@ -52,9 +52,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Copy build artifacts
 COPY --from=build /app/publish .
 
-# Install Playwright Chromium browser binaries
+# Install Playwright Chromium browser binaries (Supports both x64 and ARM64)
 ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
-RUN /app/.playwright/node/linux-x64/node /app/.playwright/package/cli.js install chromium \
+RUN NODE_BIN=$(find /app/.playwright/node -name node -type f | head -n 1) && \
+    $NODE_BIN /app/.playwright/package/cli.js install chromium \
     && chmod -R 777 /ms-playwright
 
 # Create persistent storage directories
