@@ -264,6 +264,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // ── Auth State Change Listener ───────────────────────────────────────────
   window.AuthManager.onAuthStateChanged((isAuthenticated, user) => {
+    console.log('[StockTracker] onAuthStateChanged:', isAuthenticated, user?.email);
     if (isAuthenticated && user) {
       if (authViewWrapper) authViewWrapper.style.display = 'none';
       if (appShellWrapper) appShellWrapper.style.display = 'flex';
@@ -944,11 +945,16 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
+  let _tgSettingsLoading = false;
   async function loadUserTelegramSettings() {
     if (!window.AuthManager.isAuthenticated()) return;
+    if (_tgSettingsLoading) return; // prevent concurrent calls
+    _tgSettingsLoading = true;
+    console.log('[StockTracker] loadUserTelegramSettings: starting API call...');
     try {
       const data = await window.apiClient.get('/api/users/me/telegram');
       userSavedTelegramData = data;
+      console.log('[StockTracker] loadUserTelegramSettings: API response:', JSON.stringify(data));
 
       if (data && data.isConfigured && data.chatId) {
         if (tgOptionSavedWrapper) tgOptionSavedWrapper.style.display = 'flex';
@@ -961,14 +967,18 @@ document.addEventListener('DOMContentLoaded', () => {
         if (tgChoiceSaved) tgChoiceSaved.checked = true;
         updateBotChoiceUI('saved');
         if (tgNoSavedBotHint) tgNoSavedBotHint.style.display = 'none';
+        console.log('[StockTracker] loadUserTelegramSettings: saved bot UI updated, chatId =', data.chatId);
       } else {
         if (tgOptionSavedWrapper) tgOptionSavedWrapper.style.display = 'none';
         if (tgChoiceCustom) tgChoiceCustom.checked = true;
         updateBotChoiceUI('custom');
         if (tgNoSavedBotHint) tgNoSavedBotHint.style.display = 'block';
+        console.log('[StockTracker] loadUserTelegramSettings: no saved bot, showing custom mode');
       }
     } catch (err) {
-      console.warn('Failed to load user Telegram settings:', err);
+      console.warn('[StockTracker] loadUserTelegramSettings: FAILED:', err);
+    } finally {
+      _tgSettingsLoading = false;
     }
   }
 
