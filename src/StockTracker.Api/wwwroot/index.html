@@ -329,35 +329,76 @@
           <!-- Telegram Notification Options Card -->
           <div class="card">
             <div class="card-title"><span>3 — Telegram Bildirim Ayarları</span></div>
-            <div id="tg-config-hint" class="helper-text" style="display:none; background:#f0fdf4; border-color:#bbf7d0; color:#166534;">
-              ✅ <strong>Hesabınıza Bağlı Telegram:</strong> Telegram bildirim ayarlarınız profilinizde kayıtlı. Aşağıdaki Chat ID otomatik yüklendi.
+            <div id="tg-config-hint" style="display:none;"></div>
+
+            <!-- Bot Choice Selector -->
+            <div class="field-group" id="tg-bot-selection-group">
+              <label>Bildirim Gönderilecek Bot</label>
+              <div style="display:flex; flex-direction:column; gap:0.6rem; margin-top:0.4rem;">
+                
+                <!-- Saved Bot Option -->
+                <label id="tg-option-saved-wrapper" style="display:flex; align-items:flex-start; gap:0.6rem; cursor:pointer; padding:0.75rem; border:2px solid #3b82f6; border-radius:8px; background:#eff6ff; transition:all 0.2s;">
+                  <input type="radio" name="tg_bot_choice" id="tg-choice-saved" value="saved" checked style="margin-top:0.2rem; cursor:pointer;">
+                  <div style="flex:1;">
+                    <div style="display:flex; align-items:center; justify-content:space-between; gap:0.5rem;">
+                      <strong id="tg-saved-bot-title" style="color:#1e3a8a; font-size:0.92rem;">🟢 Kayıtlı Profil Botum</strong>
+                      <span id="tg-saved-bot-badge" class="badge-active" style="font-size:0.7rem;">Varsayılan</span>
+                    </div>
+                    <div id="tg-saved-bot-desc" style="font-size:0.82rem; color:#475569; margin-top:0.2rem;">
+                      Hedef Chat ID: <span id="tg-saved-bot-chatid-label" style="font-weight:600; color:#1e293b;">Yükleniyor...</span>
+                    </div>
+                  </div>
+                </label>
+
+                <!-- Custom Bot Option -->
+                <label id="tg-option-custom-wrapper" style="display:flex; align-items:flex-start; gap:0.6rem; cursor:pointer; padding:0.75rem; border:1px solid #cbd5e1; border-radius:8px; background:#fff; transition:all 0.2s;">
+                  <input type="radio" name="tg_bot_choice" id="tg-choice-custom" value="custom" style="margin-top:0.2rem; cursor:pointer;">
+                  <div style="flex:1;">
+                    <strong style="color:#334155; font-size:0.92rem;">➕ Farklı / Özel Bir Bot Bilgisi Gir</strong>
+                    <div style="font-size:0.82rem; color:#64748b; margin-top:0.2rem;">
+                      Sadece bu ürün için özel bir Bot Token ve Chat ID kullanın
+                    </div>
+                  </div>
+                </label>
+
+              </div>
             </div>
 
-            <div class="field-group">
-              <label for="tg-token">Bot Token <span style="font-size:0.8rem; font-weight:normal; color:#64748b;">(Hesabınızda kayıtlıysa boş bırakabilirsiniz)</span></label>
-              <input type="password"
-                     id="tg-token"
-                     name="st_telegram_bot_token"
-                     placeholder="123456789:AAExampleToken..."
-                     autocomplete="new-password"
-                     data-lpignore="true"
-                     spellcheck="false" />
+            <!-- Custom Telegram Fields (shown when Custom is selected or when no saved bot) -->
+            <div id="tg-custom-fields" style="display:none; margin-top:0.8rem; padding-top:0.8rem; border-top:1px dashed #cbd5e1;">
+              <div class="field-group">
+                <label for="tg-token">Özel Bot Token</label>
+                <input type="password"
+                       id="tg-token"
+                       name="st_telegram_bot_token"
+                       placeholder="123456789:AAExampleToken..."
+                       autocomplete="new-password"
+                       data-lpignore="true"
+                       spellcheck="false" />
+              </div>
+              <div class="field-group">
+                <label for="tg-chat-id">Özel Chat ID</label>
+                <input type="text"
+                       id="tg-chat-id"
+                       name="st_telegram_chat_id"
+                       placeholder="123456789"
+                       autocomplete="new-password"
+                       data-lpignore="true"
+                       spellcheck="false" />
+              </div>
+              <div class="helper-text">
+                💡 <strong>Chat ID Nasıl Alınır?</strong> Botunuza Telegram üzerinden önce <code>/start</code> gönderin. Sayısal Chat ID'nizi <a href="https://t.me/userinfobot" target="_blank" rel="noopener">@userinfobot</a> üzerinden öğrenebilirsiniz.
+              </div>
             </div>
-            <div class="field-group">
-              <label for="tg-chat-id">Chat ID</label>
-              <input type="text"
-                     id="tg-chat-id"
-                     name="st_telegram_chat_id"
-                     placeholder="123456789"
-                     autocomplete="new-password"
-                     data-lpignore="true"
-                     spellcheck="false" />
+
+            <div id="tg-no-saved-bot-hint" class="helper-text" style="display:none; background:#fffbeb; border-color:#fef3c7; color:#92400e;">
+              💡 Henüz Telegram ayarlarınızı kaydetmediniz. Her seferinde girmek zorunda kalmamak için <a href="#" id="tg-link-to-settings" style="color:#b45309; font-weight:600; text-decoration:underline;">Telegram Ayarları</a> menüsünden botunuzu kaydedebilirsiniz.
             </div>
-            <div class="helper-text">
-              💡 <strong>Chat ID Nasıl Alınır?</strong> Botunuza Telegram üzerinden önce <code>/start</code> gönderin. Sayısal Chat ID'nizi <a href="https://t.me/userinfobot" target="_blank" rel="noopener">@userinfobot</a> üzerinden öğrenebilirsiniz.
+
+            <div style="margin-top:0.8rem;">
+              <button type="button" class="btn-secondary" id="tg-test-btn">Telegram Bağlantısını Test Et</button>
             </div>
-            <button type="button" class="btn-secondary" id="tg-test-btn">Telegram Bağlantısını Test Et</button>
-            <div class="status-box neutral" id="tg-status-msg">
+            <div class="status-box neutral" id="tg-status-msg" style="margin-top:0.6rem;">
               <span>⚪ Durum: Bağlı değil</span>
             </div>
           </div>

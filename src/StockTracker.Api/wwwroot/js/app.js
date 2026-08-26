@@ -66,7 +66,15 @@ document.addEventListener('DOMContentLoaded', () => {
   const tgChatIdInput = document.getElementById('tg-chat-id');
   const tgTestBtn = document.getElementById('tg-test-btn');
   const tgStatusMsg = document.getElementById('tg-status-msg');
-  const tgConfigHint = document.getElementById('tg-config-hint');
+  const tgChoiceSaved = document.getElementById('tg-choice-saved');
+  const tgChoiceCustom = document.getElementById('tg-choice-custom');
+  const tgOptionSavedWrapper = document.getElementById('tg-option-saved-wrapper');
+  const tgOptionCustomWrapper = document.getElementById('tg-option-custom-wrapper');
+  const tgSavedBotTitle = document.getElementById('tg-saved-bot-title');
+  const tgSavedBotChatIdLabel = document.getElementById('tg-saved-bot-chatid-label');
+  const tgCustomFields = document.getElementById('tg-custom-fields');
+  const tgNoSavedBotHint = document.getElementById('tg-no-saved-bot-hint');
+  const tgLinkToSettings = document.getElementById('tg-link-to-settings');
 
   // Monitor Config DOM
   const intervalSelect = document.getElementById('interval-select');
@@ -837,11 +845,75 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // ── 6. Inspector Telegram Setup ──────────────────────────────────────────
+  let userSavedTelegramData = null;
+
+  function updateBotChoiceUI(mode) {
+    if (mode === 'saved') {
+      if (tgOptionSavedWrapper) {
+        tgOptionSavedWrapper.style.borderColor = '#3b82f6';
+        tgOptionSavedWrapper.style.backgroundColor = '#eff6ff';
+      }
+      if (tgOptionCustomWrapper) {
+        tgOptionCustomWrapper.style.borderColor = '#cbd5e1';
+        tgOptionCustomWrapper.style.backgroundColor = '#ffffff';
+      }
+      if (tgCustomFields) tgCustomFields.style.display = 'none';
+      if (userSavedTelegramData?.chatId) {
+        window.UI.setStatus(tgStatusMsg, `🟢 Kayıtlı bot hazır (${userSavedTelegramData.chatId})`, 'success');
+      } else {
+        window.UI.setStatus(tgStatusMsg, '⚪ Durum: Bağlı değil', 'neutral');
+      }
+    } else {
+      if (tgOptionSavedWrapper) {
+        tgOptionSavedWrapper.style.borderColor = '#cbd5e1';
+        tgOptionSavedWrapper.style.backgroundColor = '#ffffff';
+      }
+      if (tgOptionCustomWrapper) {
+        tgOptionCustomWrapper.style.borderColor = '#3b82f6';
+        tgOptionCustomWrapper.style.backgroundColor = '#eff6ff';
+      }
+      if (tgCustomFields) tgCustomFields.style.display = 'block';
+      window.UI.setStatus(tgStatusMsg, '⚪ Özel bot bilgileri giriniz.', 'neutral');
+    }
+  }
+
+  if (tgChoiceSaved) {
+    tgChoiceSaved.addEventListener('change', () => {
+      if (tgChoiceSaved.checked) updateBotChoiceUI('saved');
+    });
+  }
+
+  if (tgChoiceCustom) {
+    tgChoiceCustom.addEventListener('change', () => {
+      if (tgChoiceCustom.checked) updateBotChoiceUI('custom');
+    });
+  }
+
+  if (tgLinkToSettings) {
+    tgLinkToSettings.addEventListener('click', (e) => {
+      e.preventDefault();
+      window.UI.switchView('telegram');
+      loadDedicatedTelegramSettings();
+    });
+  }
+
   if (tgTestBtn) tgTestBtn.addEventListener('click', testTelegram);
 
   async function testTelegram() {
-    const botToken = tgTokenInput.value.trim();
-    const chatId = tgChatIdInput.value.trim();
+    const isSavedMode = Boolean(tgChoiceSaved && tgChoiceSaved.checked && userSavedTelegramData?.isConfigured);
+    let botToken = '';
+    let chatId = '';
+
+    if (isSavedMode) {
+      chatId = userSavedTelegramData.chatId;
+    } else {
+      botToken = tgTokenInput.value.trim();
+      chatId = tgChatIdInput.value.trim();
+      if (!botToken || !chatId) {
+        window.UI.setStatus(tgStatusMsg, '🔴 Lütfen Özel Bot Token ve Chat ID girin.', 'error');
+        return;
+      }
+    }
 
     window.UI.setStatus(tgStatusMsg, 'Telegram bağlantısı test ediliyor...', 'loading', true);
     tgTestBtn.disabled = true;
@@ -864,27 +936,28 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  let userHasSavedTelegram = false;
-
   async function loadUserTelegramSettings() {
     if (!window.AuthManager.isAuthenticated()) return;
     try {
       const data = await window.apiClient.get('/api/users/me/telegram');
+      userSavedTelegramData = data;
+
       if (data && data.isConfigured && data.chatId) {
-        userHasSavedTelegram = true;
-        if (tgChatIdInput) tgChatIdInput.value = data.chatId;
-        if (tgTokenInput) {
-          tgTokenInput.value = '';
-          tgTokenInput.placeholder = `Kayıtlı Profil Botu Kullanılacak (${data.maskedBotToken || '******'})`;
+        if (tgOptionSavedWrapper) tgOptionSavedWrapper.style.display = 'flex';
+        if (tgSavedBotTitle) {
+          tgSavedBotTitle.textContent = `🟢 Kayıtlı Profil Botum (${data.maskedBotToken || '******'})`;
         }
-        if (tgConfigHint) {
-          tgConfigHint.style.display = 'block';
-          tgConfigHint.innerHTML = `✅ <strong>Hesabınıza Bağlı Telegram:</strong> Profilinizde kayıtlı olan bot ve Chat ID (<strong>${window.UI.escapeHtml(data.chatId)}</strong>) otomatik kullanılır. Tekrar token girmenize gerek yoktur.`;
+        if (tgSavedBotChatIdLabel) {
+          tgSavedBotChatIdLabel.textContent = data.chatId;
         }
+        if (tgChoiceSaved) tgChoiceSaved.checked = true;
+        updateBotChoiceUI('saved');
+        if (tgNoSavedBotHint) tgNoSavedBotHint.style.display = 'none';
       } else {
-        userHasSavedTelegram = false;
-        if (tgConfigHint) tgConfigHint.style.display = 'none';
-        if (tgTokenInput) tgTokenInput.placeholder = '123456789:AAExampleToken...';
+        if (tgOptionSavedWrapper) tgOptionSavedWrapper.style.display = 'none';
+        if (tgChoiceCustom) tgChoiceCustom.checked = true;
+        updateBotChoiceUI('custom');
+        if (tgNoSavedBotHint) tgNoSavedBotHint.style.display = 'block';
       }
     } catch (err) {
       console.warn('Failed to load user Telegram settings:', err);
@@ -913,12 +986,19 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
 
-    const botToken = tgTokenInput.value.trim();
-    const chatId = tgChatIdInput.value.trim();
+    const isSavedMode = Boolean(tgChoiceSaved && tgChoiceSaved.checked && userSavedTelegramData?.isConfigured);
+    let botToken = '';
+    let chatId = '';
 
-    if (!userHasSavedTelegram && (!botToken || !chatId)) {
-      window.UI.setStatus(startMonitorStatus, '🔴 Lütfen Telegram Bot Token ve Chat ID alanlarını doldurun.', 'error');
-      return;
+    if (isSavedMode) {
+      chatId = userSavedTelegramData.chatId;
+    } else {
+      botToken = tgTokenInput.value.trim();
+      chatId = tgChatIdInput.value.trim();
+      if (!botToken || !chatId) {
+        window.UI.setStatus(startMonitorStatus, '🔴 Lütfen Telegram Bot Token ve Chat ID alanlarını doldurun.', 'error');
+        return;
+      }
     }
 
     const checkIntervalMinutes = parseInt(intervalSelect.value, 10) || 60;
