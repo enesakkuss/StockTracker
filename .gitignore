@@ -42,7 +42,6 @@ artifacts/
 *.db-wal
 
 # Secrets - NEVER commit these
-appsettings.Production.json
 secrets.json
 .env
 
