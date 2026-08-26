@@ -274,6 +274,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (authLoggedIn) authLoggedIn.style.display = 'flex';
 
       loadUserProfileSettings();
+      loadUserTelegramSettings();
       loadDashboard();
       loadMonitors(1, currentMonitorsPageSize);
       loadInspectorUsageInfo();
@@ -900,11 +901,18 @@ document.addEventListener('DOMContentLoaded', () => {
   if (tgTestBtn) tgTestBtn.addEventListener('click', testTelegram);
 
   async function testTelegram() {
-    const isSavedMode = Boolean(tgChoiceSaved && tgChoiceSaved.checked && userSavedTelegramData?.isConfigured);
+    if (userSavedTelegramData === null && window.AuthManager.isAuthenticated()) {
+      await loadUserTelegramSettings();
+    }
+    const isSavedMode = Boolean(tgChoiceSaved && tgChoiceSaved.checked);
     let botToken = '';
     let chatId = '';
 
     if (isSavedMode) {
+      if (!userSavedTelegramData?.isConfigured) {
+        window.UI.setStatus(tgStatusMsg, '🔴 Kayıtlı bir Telegram botunuz bulunamadı. Lütfen "Özel Bot" seçeneğini kullanın veya Telegram Ayarları menüsünden botunuzu kaydedin.', 'error');
+        return;
+      }
       chatId = userSavedTelegramData.chatId;
     } else {
       botToken = tgTokenInput.value.trim();
@@ -986,11 +994,19 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
 
-    const isSavedMode = Boolean(tgChoiceSaved && tgChoiceSaved.checked && userSavedTelegramData?.isConfigured);
+    if (userSavedTelegramData === null && window.AuthManager.isAuthenticated()) {
+      await loadUserTelegramSettings();
+    }
+
+    const isSavedMode = Boolean(tgChoiceSaved && tgChoiceSaved.checked);
     let botToken = '';
     let chatId = '';
 
     if (isSavedMode) {
+      if (!userSavedTelegramData?.isConfigured) {
+        window.UI.setStatus(startMonitorStatus, '🔴 Kayıtlı bir Telegram botunuz bulunamadı. Lütfen "Özel Bot" seçeneğini kullanın veya Telegram Ayarları menüsünden botunuzu kaydedin.', 'error');
+        return;
+      }
       chatId = userSavedTelegramData.chatId;
     } else {
       botToken = tgTokenInput.value.trim();
