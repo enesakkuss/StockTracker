@@ -225,11 +225,14 @@ public class TelegramNotificationService : ITelegramService, INotificationServic
         var storeEncoded = WebUtility.HtmlEncode(notification.Store.ToUpperInvariant());
         var nameEncoded = WebUtility.HtmlEncode(notification.ProductName);
         var variantEncoded = WebUtility.HtmlEncode(notification.VariantName);
+        var urlEncoded = WebUtility.HtmlEncode(notification.ProductUrl);
 
         return $"🟢 <b>STOK GELDİ!</b>\n\n" +
-               $"<b>Mağaza:</b> {storeEncoded}\n\n" +
-               $"<b>Ürün:</b>\n{nameEncoded}\n\n" +
-               $"<b>Beden:</b>\n{variantEncoded}";
+               $"🏪 <b>Mağaza:</b> {storeEncoded}\n" +
+               $"📦 <b>Ürün:</b> {nameEncoded}\n" +
+               $"📏 <b>Beden:</b> {variantEncoded}\n\n" +
+               $"👉 <a href=\"{urlEncoded}\"><b>Satın Almak İçin Tıkla</b></a>\n" +
+               $"🔗 {urlEncoded}";
     }
 
     private static object BuildInlineKeyboard(string productUrl)
@@ -242,7 +245,7 @@ public class TelegramNotificationService : ITelegramService, INotificationServic
                 {
                     new
                     {
-                        text = "🛒 ÜRÜNE GİT",
+                        text = "🛒 Satın Almak İçin Tıkla",
                         url = productUrl
                     }
                 }
