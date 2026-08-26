@@ -1,0 +1,49 @@
+﻿name: Build, Test & Deploy to Oracle Cloud
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  test:
+    name: Run Unit & Integration Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup .NET SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Restore dependencies
+        run: dotnet restore StockTracker.sln
+
+      - name: Run Tests
+        run: dotnet test StockTracker.sln --configuration Release --no-restore --logger "console;verbosity=normal"
+
+  deploy:
+    name: Deploy to Oracle Cloud
+    needs: test
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - name: Execute remote deployment commands via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: 22
+          script_stop: true
+          script: |
+            echo "🚀 Starting automated deployment on Oracle Cloud server..."
+            cd ~/StockTracker
+            git fetch origin main
+            git reset --hard origin/main
+            sudo docker-compose -f docker-compose.prod.yml build stocktracker-api
+            sudo docker-compose -f docker-compose.prod.yml up -d --remove-orphans
+            echo "✅ Deployment completed successfully!"
+            sudo docker-compose -f docker-compose.prod.yml ps
