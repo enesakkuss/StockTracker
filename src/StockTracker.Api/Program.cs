@@ -226,7 +226,25 @@ using (var scope = app.Services.CreateScope())
             CreatedAt = DateTime.UtcNow
         };
 
-        db.SubscriptionPlans.AddRange(freePlan, premiumPlan);
+        var adminPlan = new SubscriptionPlan
+        {
+            Name = "ADMIN",
+            Description = "Süper Yönetici / Sınırsız Erişim Planı",
+            Price = 0.00m,
+            Currency = "TRY",
+            BillingPeriod = "Lifetime",
+            MaxActiveMonitors = 99999,
+            MaxTotalMonitors = 99999,
+            MinCheckIntervalMinutes = 1,
+            TelegramEnabled = true,
+            MaxNotificationsPerDay = 999999,
+            MaxInspectRequestsPerDay = 999999,
+            IsActive = true,
+            SortOrder = 0,
+            CreatedAt = DateTime.UtcNow
+        };
+
+        db.SubscriptionPlans.AddRange(freePlan, premiumPlan, adminPlan);
         db.SaveChanges();
     }
 }
