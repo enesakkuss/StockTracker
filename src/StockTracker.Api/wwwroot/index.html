@@ -1,0 +1,692 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>StockTracker — SaaS Stok Takip Platformu</title>
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+
+  <!-- =========================================================================
+       1. UNAUTHENTICATED AUTHENTICATION VIEW
+       ========================================================================= -->
+  <div id="auth-view-wrapper">
+    <div class="auth-brand">
+      <h1>StockTracker</h1>
+      <p>13 Moda Mağazasında Canlı Beden &amp; Stok Takip Sistemi</p>
+    </div>
+
+    <div class="auth-card-box" id="auth-card">
+      <div id="auth-logged-out">
+        <div class="auth-tabs">
+          <button type="button" class="active" id="tab-login-btn">Giriş Yap</button>
+          <button type="button" id="tab-register-btn">Kayıt Ol</button>
+        </div>
+
+        <!-- Login Form -->
+        <form id="login-form">
+          <div class="field-group">
+            <label for="login-email">E-Posta Adresi</label>
+            <input type="email" id="login-email" placeholder="ornek@email.com" required autocomplete="email" />
+          </div>
+          <div class="field-group">
+            <label for="login-password">Şifre</label>
+            <input type="password" id="login-password" placeholder="••••••••" required autocomplete="current-password" />
+          </div>
+          <button type="submit" class="btn-primary" style="width:100%; padding:0.75rem;">Giriş Yap</button>
+        </form>
+
+        <!-- Register Form -->
+        <form id="register-form" style="display:none;">
+          <div style="display:flex; gap:0.6rem;">
+            <div class="field-group" style="flex:1;">
+              <label for="reg-firstname">Ad</label>
+              <input type="text" id="reg-firstname" placeholder="Ahmet" required autocomplete="given-name" />
+            </div>
+            <div class="field-group" style="flex:1;">
+              <label for="reg-lastname">Soyad</label>
+              <input type="text" id="reg-lastname" placeholder="Yılmaz" required autocomplete="family-name" />
+            </div>
+          </div>
+          <div class="field-group">
+            <label for="reg-email">E-Posta Adresi</label>
+            <input type="email" id="reg-email" placeholder="ornek@email.com" required autocomplete="email" />
+          </div>
+          <div class="field-group">
+            <label for="reg-password">Şifre (Min. 6 Karakter)</label>
+            <input type="password" id="reg-password" placeholder="••••••••" required minlength="6" autocomplete="new-password" />
+          </div>
+          <button type="submit" class="btn-primary" style="width:100%; padding:0.75rem;">Hesap Oluştur</button>
+        </form>
+
+        <div class="status-box" id="auth-status-msg"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Legacy/Compatibility Auth Element -->
+  <div id="auth-logged-in" style="display:none;">
+    <div id="current-user-name"></div>
+    <div id="current-user-email"></div>
+  </div>
+
+  <!-- =========================================================================
+       2. AUTHENTICATED APPLICATION SHELL
+       ========================================================================= -->
+  <div id="app-shell-wrapper" style="display:none;">
+    <!-- Mobile Sidebar Backdrop -->
+    <div class="sidebar-backdrop"></div>
+
+    <!-- Sidebar Navigation -->
+    <aside class="app-sidebar">
+      <div class="sidebar-header">
+        <div class="sidebar-logo">
+          <span>📦</span> StockTracker
+        </div>
+        <button type="button" class="sidebar-close-btn" id="sidebar-close-btn" aria-label="Menüyü Kapat">&times;</button>
+      </div>
+
+      <nav class="sidebar-nav">
+        <a href="#dashboard" class="nav-item" data-view="dashboard">
+          <span class="nav-icon">📊</span>
+          <span>Dashboard</span>
+        </a>
+        <a href="#monitors" class="nav-item" data-view="monitors">
+          <span class="nav-icon">🔔</span>
+          <span>Stok Takipleri</span>
+        </a>
+        <a href="#inspector" class="nav-item active" data-view="inspector">
+          <span class="nav-icon">🔍</span>
+          <span>Ürün İnceleme</span>
+        </a>
+        <a href="#notifications" class="nav-item" data-view="notifications">
+          <span class="nav-icon">📬</span>
+          <span>Bildirim Geçmişi</span>
+        </a>
+        <a href="#telegram" class="nav-item" data-view="telegram">
+          <span class="nav-icon">✈️</span>
+          <span>Telegram Ayarları</span>
+        </a>
+        <a href="#settings" class="nav-item" data-view="settings">
+          <span class="nav-icon">⚙️</span>
+          <span>Hesap &amp; Ayarlar</span>
+        </a>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="user-profile-badge">
+          <div class="user-avatar" id="sidebar-user-avatar">U</div>
+          <div class="user-info-text">
+            <div class="user-name-display" id="sidebar-user-name">Kullanıcı</div>
+            <div class="user-email-display" id="sidebar-user-email">kullanici@stocktracker.local</div>
+          </div>
+        </div>
+        <button type="button" class="btn-outline-danger" id="logout-btn" style="width:100%; font-size:0.8rem; padding:0.45rem;">
+          🚪 Çıkış Yap
+        </button>
+      </div>
+    </aside>
+
+    <!-- Main Content Wrapper -->
+    <div class="app-main">
+      <!-- Topbar Header -->
+      <header class="app-topbar">
+        <div class="topbar-left">
+          <button type="button" class="sidebar-toggle-btn" id="sidebar-toggle-btn" aria-label="Menüyü Aç">☰</button>
+          <h2 class="topbar-title" id="current-view-title">Ürün İnceleme &amp; Takip</h2>
+        </div>
+        <div class="topbar-right">
+          <button type="button" class="btn-secondary" id="topbar-logout-btn" style="font-size:0.82rem; padding:0.4rem 0.8rem;">
+            Çıkış Yap
+          </button>
+        </div>
+      </header>
+
+      <!-- Main Container -->
+      <main class="app-content" id="main-content">
+
+        <!-- ── VIEW 1: DASHBOARD ── -->
+        <section class="view-section" id="view-dashboard">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.2rem;">
+            <h3 style="font-size:1.15rem; font-weight:800; color:#0f172a;">Genel Bakış &amp; Kullanım Özeti</h3>
+            <button type="button" class="btn-outline-primary" id="refresh-dashboard-btn" style="font-size:0.8rem; padding:0.35rem 0.75rem;">
+              🔄 Yenile
+            </button>
+          </div>
+
+          <!-- Stats Grid -->
+          <div class="stats-grid">
+            <!-- Stat 1: Toplam Takip -->
+            <div class="stat-card">
+              <div class="stat-card-header">
+                <span class="stat-card-title">Toplam Takip</span>
+                <span class="stat-card-icon">📊</span>
+              </div>
+              <div class="stat-card-value" id="dash-total-monitors">—</div>
+              <div class="stat-card-subtext">Planınıza dahil toplam takip sayısı</div>
+            </div>
+
+            <!-- Stat 2: Aktif Takip -->
+            <div class="stat-card">
+              <div class="stat-card-header">
+                <span class="stat-card-title">Aktif Takipler</span>
+                <span class="stat-card-icon">🟢</span>
+              </div>
+              <div class="stat-card-value" id="dash-active-monitors" style="color:#16a34a;">—</div>
+              <div class="stat-progress-bar">
+                <div class="stat-progress-fill" id="dash-active-progress" style="width: 0%;"></div>
+              </div>
+              <div class="stat-card-subtext">Anlık çalışan aktif izlemeler</div>
+            </div>
+
+            <!-- Stat 3: Pasif Takip -->
+            <div class="stat-card">
+              <div class="stat-card-header">
+                <span class="stat-card-title">Durdurulan Takipler</span>
+                <span class="stat-card-icon">⏸</span>
+              </div>
+              <div class="stat-card-value" id="dash-paused-monitors" style="color:#64748b;">—</div>
+              <div class="stat-card-subtext">Geçici olarak duraklatılmış izlemeler</div>
+            </div>
+
+            <!-- Stat 4: Stokta Olan Ürünler -->
+            <div class="stat-card">
+              <div class="stat-card-header">
+                <span class="stat-card-title">Stokta Olan Ürünler</span>
+                <span class="stat-card-icon">📦</span>
+              </div>
+              <div class="stat-card-value" id="dash-available-items" style="color:#2563eb;">—</div>
+              <div class="stat-card-subtext">Şu an bedeni mevcut olan ürün sayısı</div>
+            </div>
+
+            <!-- Stat 5: Bugünkü Bildirimler -->
+            <div class="stat-card">
+              <div class="stat-card-header">
+                <span class="stat-card-title">Bugünkü Bildirimler</span>
+                <span class="stat-card-icon">🔔</span>
+              </div>
+              <div class="stat-card-value" id="dash-notifications-today">—</div>
+              <div class="stat-card-subtext">Gün içinde iletilen Telegram alarmları</div>
+            </div>
+
+            <!-- Stat 6: Plan & Sıklık Bilgisi -->
+            <div class="stat-card">
+              <div class="stat-card-header">
+                <span class="stat-card-title">Abonelik &amp; Sıklık</span>
+                <span class="stat-card-icon">⚡</span>
+              </div>
+              <div class="stat-card-value" id="dash-plan-info" style="font-size:1.3rem;">FREE Planı</div>
+              <div class="stat-card-subtext">Otomatik aralık kontrolü</div>
+            </div>
+          </div>
+
+          <!-- Overview & Status Card -->
+          <div class="card">
+            <div class="card-title"><span>Hızlı Durum &amp; Son Hareketler</span></div>
+            <div id="dash-overview-container">
+              <div class="placeholder-box">Özet veriler yükleniyor...</div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ── VIEW 2: MONITORS LIST ── -->
+        <section class="view-section" id="view-monitors">
+          <div class="card" id="monitors-list-card">
+            <div class="monitors-toolbar">
+              <div class="monitors-search-wrap">
+                <input type="text" id="monitors-search-input" placeholder="🔍 Ürün adı veya mağazada ara..." autocomplete="off" />
+              </div>
+              <div style="display:flex; gap:0.5rem;">
+                <button type="button" class="btn-primary" id="add-monitor-cta-btn" style="font-size:0.85rem; padding:0.45rem 0.9rem;">
+                  + Yeni Takip Ekle
+                </button>
+                <button type="button" class="btn-outline-success" id="refresh-monitors-btn" style="font-size:0.85rem; padding:0.45rem 0.8rem;">
+                  🔄 Yenile
+                </button>
+              </div>
+            </div>
+
+            <div id="monitors-container">
+              <div class="placeholder-box">Takip kayıtları yükleniyor...</div>
+            </div>
+
+            <!-- Pagination Bar -->
+            <div class="pagination-bar" id="monitors-pagination">
+              <div class="pagination-info" id="pagination-info">Toplam 0 kayıttan Sayfa 1 / 1</div>
+              <div class="pagination-controls">
+                <select id="page-size-select" style="width:auto; padding:0.35rem 0.6rem; font-size:0.8rem;">
+                  <option value="10">10 / sayfa</option>
+                  <option value="20" selected>20 / sayfa</option>
+                  <option value="50">50 / sayfa</option>
+                </select>
+                <button type="button" class="btn-secondary" id="prev-page-btn" disabled style="padding:0.35rem 0.75rem; font-size:0.8rem;">
+                  &larr; Önceki
+                </button>
+                <button type="button" class="btn-secondary" id="next-page-btn" disabled style="padding:0.35rem 0.75rem; font-size:0.8rem;">
+                  Sonraki &rarr;
+                </button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ── VIEW 3: PRODUCT INSPECTOR (Default Active) ── -->
+        <section class="view-section active" id="view-inspector">
+          <!-- Product URL Card -->
+          <div class="card">
+            <div class="card-title"><span>1 — Ürün URL'si</span></div>
+            <div class="url-row">
+              <input type="text"
+                     id="url-input"
+                     placeholder="https://www.zara.com/... veya https://shop.mango.com/..."
+                     autocomplete="off"
+                     spellcheck="false" />
+              <button type="button" class="btn-primary" id="fetch-btn">Ürünü Getir</button>
+            </div>
+            <div class="status-box" id="fetch-status-msg"></div>
+          </div>
+
+          <!-- Product Details Card -->
+          <div class="card" id="product-card" style="display:none;">
+            <div class="card-title"><span>2 — Ürün Detayı &amp; Beden Seçimi</span></div>
+            
+            <div id="inspect-status-banner" style="display:none;"></div>
+
+            <div class="product-layout">
+              <div class="product-img-wrap">
+                <img id="product-img" alt="Ürün Görseli" />
+              </div>
+              <div class="product-info">
+                <div class="product-store" id="product-store"></div>
+                <div class="product-name" id="product-name"></div>
+                
+                <div class="variant-toolbar">
+                  <div style="font-size:0.82rem; font-weight:600; color:#475569;">
+                    Takip Edilecek Bedenleri Seçin:
+                  </div>
+                  <div class="variant-quick-btns">
+                    <button type="button" class="btn-text-action" id="select-all-variants-btn">Tümünü Seç</button>
+                    <button type="button" class="btn-text-action" id="deselect-all-variants-btn">Temizle</button>
+                  </div>
+                </div>
+
+                <div class="variant-grid" id="variant-grid"></div>
+                <div id="variants-placeholder" class="placeholder-box" style="display:none;">
+                  Bu ürün için beden seçeneği bulunamadı.
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card" id="empty-card">
+            <div class="card-title"><span>2 — Ürün Detayı</span></div>
+            <div class="placeholder-box">
+              Önce yukarıya desteklenen 13 mağazadan birine ait ürün URL'si girip "Ürünü Getir" butonuna basın.
+            </div>
+          </div>
+
+          <!-- Telegram Notification Options Card -->
+          <div class="card">
+            <div class="card-title"><span>3 — Telegram Bildirim Ayarları</span></div>
+            <div id="tg-config-hint" class="helper-text" style="display:none; background:#f0fdf4; border-color:#bbf7d0; color:#166534;">
+              ✅ <strong>Hesabınıza Bağlı Telegram:</strong> Telegram bildirim ayarlarınız profilinizde kayıtlı. Aşağıdaki Chat ID otomatik yüklendi.
+            </div>
+
+            <div class="field-group">
+              <label for="tg-token">Bot Token</label>
+              <input type="password"
+                     id="tg-token"
+                     placeholder="123456789:AAExampleToken..."
+                     autocomplete="off"
+                     spellcheck="false" />
+            </div>
+            <div class="field-group">
+              <label for="tg-chat-id">Chat ID</label>
+              <input type="text"
+                     id="tg-chat-id"
+                     placeholder="123456789"
+                     autocomplete="off"
+                     spellcheck="false" />
+            </div>
+            <div class="helper-text">
+              💡 <strong>Chat ID Nasıl Alınır?</strong> Botunuza Telegram üzerinden önce <code>/start</code> gönderin. Sayısal Chat ID'nizi <a href="https://t.me/userinfobot" target="_blank" rel="noopener">@userinfobot</a> üzerinden öğrenebilirsiniz.
+            </div>
+            <button type="button" class="btn-secondary" id="tg-test-btn">Telegram Bağlantısını Test Et</button>
+            <div class="status-box neutral" id="tg-status-msg">
+              <span>⚪ Durum: Bağlı değil</span>
+            </div>
+          </div>
+
+          <!-- Monitor Timing & Start Button -->
+          <div class="card" id="monitor-config-card">
+            <div class="card-title">
+              <span>4 — Takip Ayarları</span>
+              <span id="monitor-usage-badge" style="font-size:0.75rem; font-weight:700; color:#2563eb; text-transform:none;"></span>
+            </div>
+            <div class="field-group">
+              <label for="interval-select">Kontrol Sıklığı</label>
+              <select id="interval-select">
+                <option value="60" selected>60 dakika (Ücretsiz Plan)</option>
+                <option value="30">30 dakika</option>
+                <option value="15">15 dakika</option>
+                <option value="10">10 dakika</option>
+                <option value="5">5 dakika</option>
+              </select>
+            </div>
+            <button type="button" class="btn-success" id="start-monitor-btn">🔔 Takibi Başlat</button>
+            <div class="status-box" id="start-monitor-status-msg"></div>
+          </div>
+        </section>
+
+        <!-- ── VIEW 4: NOTIFICATIONS HISTORY ── -->
+        <section class="view-section" id="view-notifications">
+          <div class="card">
+            <div class="card-title"><span>Bildirim Filtreleri</span></div>
+            <div class="filter-grid">
+              <div class="field-group" style="margin-bottom:0;">
+                <label for="notif-filter-store">Mağaza</label>
+                <select id="notif-filter-store">
+                  <option value="">Tüm Mağazalar</option>
+                </select>
+              </div>
+              <div class="field-group" style="margin-bottom:0;">
+                <label for="notif-filter-date-from">Başlangıç Tarihi</label>
+                <input type="date" id="notif-filter-date-from" />
+              </div>
+              <div class="field-group" style="margin-bottom:0;">
+                <label for="notif-filter-date-to">Bitiş Tarihi</label>
+                <input type="date" id="notif-filter-date-to" />
+              </div>
+            </div>
+            <div style="display:flex; justify-content:flex-end; gap:0.6rem; margin-top:0.8rem;">
+              <button type="button" class="btn-secondary" id="notif-reset-btn" style="font-size:0.82rem; padding:0.4rem 0.8rem;">
+                Filtreleri Temizle
+              </button>
+              <button type="button" class="btn-primary" id="notif-filter-btn" style="font-size:0.82rem; padding:0.4rem 0.9rem;">
+                Filtrele
+              </button>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-title"><span>Geçmiş Stok Bildirimleri</span></div>
+            <div id="notifications-container">
+              <div class="placeholder-box">Bildirimler yükleniyor...</div>
+            </div>
+
+            <!-- Notifications Pagination Bar -->
+            <div class="pagination-bar" id="notifications-pagination">
+              <div class="pagination-info" id="notif-pagination-info">Toplam 0 bildirimden Sayfa 1 / 1</div>
+              <div class="pagination-controls">
+                <select id="notif-page-size-select" style="width:auto; padding:0.35rem 0.6rem; font-size:0.8rem;">
+                  <option value="10">10 / sayfa</option>
+                  <option value="20" selected>20 / sayfa</option>
+                  <option value="50">50 / sayfa</option>
+                </select>
+                <button type="button" class="btn-secondary" id="notif-prev-page-btn" disabled style="padding:0.35rem 0.75rem; font-size:0.8rem;">
+                  &larr; Önceki
+                </button>
+                <button type="button" class="btn-secondary" id="notif-next-page-btn" disabled style="padding:0.35rem 0.75rem; font-size:0.8rem;">
+                  Sonraki &rarr;
+                </button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ── VIEW 5: TELEGRAM SETTINGS ── -->
+        <section class="view-section" id="view-telegram">
+          <!-- Connection Status Card -->
+          <div class="card">
+            <div class="card-title"><span>Telegram Bağlantı Durumu</span></div>
+            <div class="tg-status-card">
+              <div class="tg-status-row">
+                <strong>Bağlantı Durumu:</strong>
+                <span id="tg-status-badge" class="badge-stopped">⚪ Yapılandırılmadı</span>
+              </div>
+              <div class="tg-status-row">
+                <strong>Kayıtlı Bot Token:</strong>
+                <span id="tg-status-masked-token" class="tg-masked-token">Tanımlanmadı</span>
+              </div>
+              <div class="tg-status-row">
+                <strong>Chat ID:</strong>
+                <span id="tg-status-chat-id" style="font-weight:600; color:#334155;">Tanımlanmadı</span>
+              </div>
+              <div class="tg-status-row">
+                <strong>Son Güncelleme:</strong>
+                <span id="tg-status-updated-at" style="color:#64748b; font-size:0.82rem;">—</span>
+              </div>
+            </div>
+
+            <!-- Telegram Update Form -->
+            <form id="view-tg-settings-form">
+              <div class="field-group">
+                <label for="view-tg-token">Telegram Bot Token (Güncellemek için yeni token girin)</label>
+                <input type="password"
+                       id="view-tg-token"
+                       placeholder="123456789:AAExampleToken..."
+                       autocomplete="off"
+                       spellcheck="false" />
+              </div>
+
+              <div class="field-group">
+                <label for="view-tg-chat-id">Telegram Chat ID</label>
+                <input type="text"
+                       id="view-tg-chat-id"
+                       placeholder="123456789"
+                       autocomplete="off"
+                       spellcheck="false"
+                       required />
+              </div>
+
+              <div class="helper-text">
+                💡 <strong>Nasıl Kurulur?</strong> Telegram'da <a href="https://t.me/BotFather" target="_blank" rel="noopener">@BotFather</a> ile bir bot oluşturup Bot Token'ınızı alın. Ardından botunuza <code>/start</code> mesajı gönderin ve <a href="https://t.me/userinfobot" target="_blank" rel="noopener">@userinfobot</a> üzerinden öğrendiğiniz Chat ID'nizi girin.
+              </div>
+
+              <div class="status-box" id="view-tg-status-msg"></div>
+
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-top:1.2rem; flex-wrap:wrap; gap:0.6rem;">
+                <button type="button" class="btn-outline-danger" id="view-tg-disconnect-btn" style="font-size:0.85rem; padding:0.45rem 0.9rem; display:none;">
+                  🗑 Bağlantıyı Kaldır
+                </button>
+
+                <div style="display:flex; gap:0.6rem; margin-left:auto;">
+                  <button type="button" class="btn-secondary" id="view-tg-test-btn" style="font-size:0.88rem; padding:0.5rem 1rem;">
+                    🔌 Bağlantıyı Test Et
+                  </button>
+                  <button type="submit" class="btn-primary" style="font-size:0.88rem; padding:0.5rem 1.2rem;">
+                    💾 Ayarları Kaydet
+                  </button>
+                </div>
+              </div>
+            </form>
+          </div>
+        </section>
+
+        <!-- ── VIEW 6: SETTINGS & USER PREFERENCES ── -->
+        <section class="view-section" id="view-settings">
+          <!-- Section A: Profil Bilgileri -->
+          <div class="card">
+            <div class="card-title"><span>1 — Profil Bilgileri</span></div>
+            <form id="settings-profile-form">
+              <div style="display:flex; gap:0.8rem; flex-wrap:wrap;">
+                <div class="field-group" style="flex:1; min-width:180px;">
+                  <label for="settings-firstname-input">Ad</label>
+                  <input type="text" id="settings-firstname-input" placeholder="Adınız" required autocomplete="given-name" />
+                </div>
+                <div class="field-group" style="flex:1; min-width:180px;">
+                  <label for="settings-lastname-input">Soyad</label>
+                  <input type="text" id="settings-lastname-input" placeholder="Soyadınız" required autocomplete="family-name" />
+                </div>
+              </div>
+
+              <div class="field-group">
+                <label>E-Posta Adresi</label>
+                <div id="settings-email-display" style="padding:0.65rem 0.95rem; background:#f1f5f9; border-radius:9px; font-weight:600; color:#475569; font-size:0.92rem;">
+                  —
+                </div>
+              </div>
+
+              <div class="status-box" id="settings-profile-status-msg"></div>
+
+              <div style="display:flex; justify-content:flex-end; margin-top:0.8rem;">
+                <button type="submit" class="btn-primary" id="settings-profile-save-btn" style="font-size:0.88rem; padding:0.5rem 1.2rem;">
+                  💾 Profili Kaydet
+                </button>
+              </div>
+            </form>
+          </div>
+
+          <!-- Section B: Bildirim & Takip Tercihleri -->
+          <div class="card">
+            <div class="card-title"><span>2 — Bildirim &amp; Takip Tercihleri</span></div>
+            <form id="settings-preferences-form">
+              <div class="field-group">
+                <label style="display:flex; align-items:center; gap:0.6rem; cursor:pointer; font-weight:600; color:#0f172a;">
+                  <input type="checkbox" id="settings-pref-telegram-enabled" style="width:auto; cursor:pointer; accent-color:#2563eb;" checked />
+                  Telegram Bildirimleri Aktif
+                </label>
+                <div style="font-size:0.78rem; color:#64748b; margin-top:0.25rem; margin-left:1.6rem;">
+                  İşaret kaldırıldığında stok değişimlerinde Telegram mesajı gönderilmez.
+                </div>
+              </div>
+
+              <div class="filter-grid">
+                <div class="field-group" style="margin-bottom:0;">
+                  <label for="settings-pref-language-select">Bildirim Dili</label>
+                  <select id="settings-pref-language-select">
+                    <option value="tr" selected>🇹🇷 Türkçe (TR)</option>
+                    <option value="en">🇬🇧 English (EN)</option>
+                  </select>
+                </div>
+
+                <div class="field-group" style="margin-bottom:0;">
+                  <label for="settings-pref-interval-select">Varsayılan Kontrol Sıklığı</label>
+                  <select id="settings-pref-interval-select">
+                    <option value="60" selected>60 dakika</option>
+                    <option value="30">30 dakika</option>
+                    <option value="15">15 dakika</option>
+                    <option value="10">10 dakika</option>
+                    <option value="5">5 dakika</option>
+                  </select>
+                </div>
+
+                <div class="field-group" style="margin-bottom:0;">
+                  <label for="settings-pref-timezone-select">Saat Dilimi</label>
+                  <select id="settings-pref-timezone-select">
+                    <option value="Europe/Istanbul" selected>Europe/Istanbul (UTC+3)</option>
+                    <option value="UTC">UTC (UTC+0)</option>
+                    <option value="Europe/London">Europe/London (UTC+1)</option>
+                    <option value="America/New_York">America/New_York (UTC-5)</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="status-box" id="settings-pref-status-msg"></div>
+
+              <div style="display:flex; justify-content:flex-end; margin-top:1rem;">
+                <button type="submit" class="btn-primary" id="settings-pref-save-btn" style="font-size:0.88rem; padding:0.5rem 1.2rem;">
+                  💾 Tercihleri Kaydet
+                </button>
+              </div>
+            </form>
+          </div>
+
+          <!-- Section C: Hesap Detayları -->
+          <div class="card">
+            <div class="card-title"><span>3 — Hesap Detayları</span></div>
+            <div class="tg-status-card" style="margin-bottom:0;">
+              <div class="tg-status-row">
+                <strong>Kayıtlı E-Posta:</strong>
+                <span id="settings-account-email" style="font-weight:600; color:#334155;">—</span>
+              </div>
+              <div class="tg-status-row">
+                <strong>Hesap Durumu:</strong>
+                <span style="color:#16a34a; font-weight:700;">🟢 Aktif Hesap</span>
+              </div>
+              <div class="tg-status-row">
+                <strong>Hesap Oluşturulma:</strong>
+                <span id="settings-account-created-at" style="color:#64748b; font-size:0.85rem;">—</span>
+              </div>
+              <div class="tg-status-row">
+                <strong>Son Giriş Zamanı:</strong>
+                <span id="settings-account-last-login" style="color:#64748b; font-size:0.85rem;">—</span>
+              </div>
+              <div class="tg-status-row">
+                <strong>Telegram Durumu:</strong>
+                <span id="settings-account-tg-status" style="font-size:0.85rem;">—</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Section D: Oturum Güvenliği -->
+          <div class="card">
+            <div class="card-title"><span>4 — Oturum Güvenliği</span></div>
+            <div style="font-size:0.88rem; color:#475569; margin-bottom:1rem; line-height:1.5;">
+              Tüm cihazlardaki (web, mobil, tablet) aktif oturumlarınızı anında sonlandırabilir ve tüm yenileme token'larını iptal edebilirsiniz.
+            </div>
+            <button type="button" class="btn-outline-danger" id="settings-revoke-all-btn" style="font-size:0.88rem; padding:0.5rem 1.1rem;">
+              🔒 Tüm Oturumları Kapat (Revoke All)
+            </button>
+          </div>
+        </section>
+
+      </main>
+    </div>
+  </div>
+
+  <!-- =========================================================================
+       3. EDIT MONITOR MODAL
+       ========================================================================= -->
+  <div class="modal-overlay" id="edit-monitor-modal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 class="modal-title">Stok Takibini Düzenle</h3>
+        <button type="button" class="modal-close-btn" id="edit-modal-close-btn">&times;</button>
+      </div>
+
+      <form id="edit-monitor-form">
+        <input type="hidden" id="edit-monitor-id" />
+
+        <div style="font-size:0.92rem; font-weight:700; color:#0f172a; margin-bottom:1rem;" id="edit-product-name">—</div>
+
+        <div class="field-group">
+          <label for="edit-variants-input">Takip Edilecek Bedenler (Virgülle ayırın)</label>
+          <input type="text" id="edit-variants-input" placeholder="M, L, XL veya 38, 40" required />
+        </div>
+
+        <div class="field-group">
+          <label for="edit-interval-select">Kontrol Sıklığı</label>
+          <select id="edit-interval-select">
+            <option value="60">60 dakika (Ücretsiz Plan Sınırı)</option>
+            <option value="30">30 dakika</option>
+            <option value="15">15 dakika</option>
+            <option value="10">10 dakika</option>
+            <option value="5">5 dakika</option>
+          </select>
+        </div>
+
+        <div class="field-group">
+          <label for="edit-chat-id-input">Telegram Chat ID (Değiştirmek istiyorsanız)</label>
+          <input type="text" id="edit-chat-id-input" placeholder="Mevcut Chat ID korunur" />
+        </div>
+
+        <div class="status-box" id="edit-status-msg"></div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn-secondary" id="edit-modal-cancel-btn">İptal</button>
+          <button type="submit" class="btn-primary">Değişiklikleri Kaydet</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script src="js/config.js"></script>
+  <script src="js/apiClient.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

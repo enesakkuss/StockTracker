@@ -1,0 +1,49 @@
+services:
+  stocktracker-api:
+    image: stocktracker:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: stocktracker-api
+    restart: unless-stopped
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - ASPNETCORE_URLS=http://0.0.0.0:5000
+      - ConnectionStrings__DefaultConnection=Data Source=/var/data/stocktracker.db;Cache=Shared
+      - Jwt__SecretKey=${JWT_SECRET_KEY:?JWT Secret Key is required}
+      - Jwt__Issuer=StockTracker
+      - Jwt__Audience=StockTrackerUsers
+      - Security__SecretProtectionKey=${SECRET_PROTECTION_KEY:?Secret Protection Key is required}
+      - Cors__AllowedOrigins__0=${ALLOWED_ORIGIN:-https://tracker.yourdomain.com}
+      - StockMonitoring__WorkerIntervalSeconds=30
+      - Browser__Headless=true
+      - Browser__Channel=
+      - PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
+    volumes:
+      - stocktracker-data:/var/data
+    ports:
+      - "127.0.0.1:5000:5000"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/health/live"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+
+  # Optional Nginx reverse proxy service
+  reverse-proxy:
+    image: nginx:alpine
+    container_name: stocktracker-proxy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.prod.conf:/etc/nginx/conf.d/default.conf:ro
+      - /etc/letsencrypt:/etc/letsencrypt:ro
+    depends_on:
+      - stocktracker-api
+
+volumes:
+  stocktracker-data:
+    name: stocktracker_prod_data
