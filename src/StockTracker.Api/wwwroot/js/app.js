@@ -16,6 +16,22 @@ document.addEventListener('DOMContentLoaded', () => {
   let supportedStoresLoaded = false;
   let cachedUserProfile = null;
 
+  /**
+   * Parse a date string from the backend as UTC.
+   * .NET returns DateTime strings without 'Z' suffix (e.g. "2026-08-26T18:51:22.929"),
+   * which JavaScript interprets as local time. This helper appends 'Z' when missing
+   * so the Date object correctly represents UTC, and toLocaleTimeString() converts
+   * to the user's local timezone.
+   */
+  function parseUTC(dateStr) {
+    if (!dateStr) return null;
+    const s = String(dateStr).trim();
+    if (s.endsWith('Z') || /[+-]\d{2}:\d{2}$/.test(s)) {
+      return new Date(s);
+    }
+    return new Date(s + 'Z');
+  }
+
   // ── Shell Elements ───────────────────────────────────────────────────────
   const authViewWrapper = document.getElementById('auth-view-wrapper');
   const appShellWrapper = document.getElementById('app-shell-wrapper');
@@ -358,7 +374,7 @@ document.addEventListener('DOMContentLoaded', () => {
             dashOverviewContainer.innerHTML = `
               <div style="font-size:0.88rem; color:#475569; line-height:1.6;">
                 <div>🟢 <strong>Sistem Durumu:</strong> Arka plan takip motoru aktif ve çalışıyor.</div>
-                <div>🔔 <strong>Son Stok Bildirimi:</strong> ${summary.lastNotificationAt ? new Date(summary.lastNotificationAt).toLocaleString('tr-TR') : 'Henüz bildirim gönderilmedi'}</div>
+                <div>🔔 <strong>Son Stok Bildirimi:</strong> ${summary.lastNotificationAt ? parseUTC(summary.lastNotificationAt).toLocaleString('tr-TR') : 'Henüz bildirim gönderilmedi'}</div>
                 <div style="margin-top:0.8rem;">
                   <button type="button" class="btn-outline-primary" id="dash-view-all-monitors-btn" style="font-size:0.85rem; padding:0.4rem 0.8rem;">
                     Tüm Takipleri Görüntüle &rarr;
@@ -516,15 +532,15 @@ document.addEventListener('DOMContentLoaded', () => {
       detailsGrid.className = 'monitor-details-grid';
 
       const lastCheckText = m.lastCheckedAt
-        ? `${new Date(m.lastCheckedAt).toLocaleTimeString('tr-TR')} (${m.lastCheckStatus === 'Success' ? '🟢 Başarılı' : '🔴 ' + (m.lastCheckError || 'Hata')})`
+        ? `${parseUTC(m.lastCheckedAt).toLocaleTimeString('tr-TR')} (${m.lastCheckStatus === 'Success' ? '🟢 Başarılı' : '🔴 ' + (m.lastCheckError || 'Hata')})`
         : 'Henüz yapılmadı';
 
       const nextCheckText = m.nextCheckAt
-        ? new Date(m.nextCheckAt).toLocaleTimeString('tr-TR')
+        ? parseUTC(m.nextCheckAt).toLocaleTimeString('tr-TR')
         : '—';
 
       const lastNotifiedText = m.lastNotifiedAt
-        ? `${m.lastNotifiedVariant ? m.lastNotifiedVariant + ' — ' : ''}${new Date(m.lastNotifiedAt).toLocaleTimeString('tr-TR')}`
+        ? `${m.lastNotifiedVariant ? m.lastNotifiedVariant + ' — ' : ''}${parseUTC(m.lastNotifiedAt).toLocaleTimeString('tr-TR')}`
         : 'Henüz bildirim yok';
 
       detailsGrid.innerHTML = `
@@ -1225,7 +1241,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const detailsGrid = document.createElement('div');
       detailsGrid.className = 'notification-details-grid';
 
-      const sentTime = n.notificationSentAt ? new Date(n.notificationSentAt).toLocaleString('tr-TR') : '—';
+      const sentTime = n.notificationSentAt ? parseUTC(n.notificationSentAt).toLocaleString('tr-TR') : '—';
       const stockChange = `${n.previousAvailability ? '🟢 Stokta' : '🔴 Stok Yok'} → ${n.currentAvailability ? '🟢 Stokta' : '🔴 Stok Yok'}`;
 
       detailsGrid.innerHTML = `
@@ -1261,7 +1277,7 @@ document.addEventListener('DOMContentLoaded', () => {
           tgStatusChatId.textContent = data.chatId || 'Tanımlanmadı';
         }
         if (tgStatusUpdatedAt) {
-          tgStatusUpdatedAt.textContent = data.updatedAt ? new Date(data.updatedAt).toLocaleString('tr-TR') : '—';
+          tgStatusUpdatedAt.textContent = data.updatedAt ? parseUTC(data.updatedAt).toLocaleString('tr-TR') : '—';
         }
 
         if (viewTgChatId) viewTgChatId.value = data.chatId || '';
@@ -1381,8 +1397,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
       // Account Details
       if (settingsAccountEmail) settingsAccountEmail.textContent = user.email || '—';
-      if (settingsAccountCreatedAt) settingsAccountCreatedAt.textContent = user.createdAt ? new Date(user.createdAt).toLocaleString('tr-TR') : '—';
-      if (settingsAccountLastLogin) settingsAccountLastLogin.textContent = user.lastLoginAt ? new Date(user.lastLoginAt).toLocaleString('tr-TR') : 'İlk oturum';
+      if (settingsAccountCreatedAt) settingsAccountCreatedAt.textContent = user.createdAt ? parseUTC(user.createdAt).toLocaleString('tr-TR') : '—';
+      if (settingsAccountLastLogin) settingsAccountLastLogin.textContent = user.lastLoginAt ? parseUTC(user.lastLoginAt).toLocaleString('tr-TR') : 'İlk oturum';
       if (settingsAccountTgStatus) {
         settingsAccountTgStatus.innerHTML = user.hasTelegramConfigured
           ? '<span style="color:#16a34a; font-weight:700;">🟢 Yapılandırıldı</span>'
