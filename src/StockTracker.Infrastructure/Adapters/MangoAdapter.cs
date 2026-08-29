@@ -78,9 +78,12 @@ public class MangoAdapter : IStoreAdapter, IInspectableAdapter
         {
             page = await _browserService.NewPageAsync();
 
+            // Stealth script to patch webdriver and navigator properties
             await page.AddInitScriptAsync(@"
                 Object.defineProperty(navigator, 'webdriver', { get: () => undefined });
-                window.chrome = { runtime: {} };
+                Object.defineProperty(navigator, 'plugins', { get: () => [1, 2, 3, 4, 5] });
+                Object.defineProperty(navigator, 'languages', { get: () => ['tr-TR', 'tr', 'en-US', 'en'] });
+                window.chrome = { runtime: {}, app: {}, loadTimes: function() {}, csi: function() {} };
             ");
 
             string? interceptedJson = null;
@@ -90,11 +93,11 @@ public class MangoAdapter : IStoreAdapter, IInspectableAdapter
                 {
                     if (interceptedJson is not null || !response.Ok) return;
                     var rUrl = response.Url;
-                    if ((rUrl.Contains("/services/product/") || rUrl.Contains("/v1/products/") || rUrl.Contains("/catalog/")) &&
+                    if ((rUrl.Contains("/services/product/") || rUrl.Contains("/v1/products/") || rUrl.Contains("/catalog/") || rUrl.Contains("/product/")) &&
                         response.Headers.TryGetValue("content-type", out var ct) && ct.Contains("json"))
                     {
                         var text = await response.TextAsync();
-                        if (text.Contains("\"sizes\"") || text.Contains("\"colors\"") || text.Contains("\"garment\""))
+                        if (text.Contains("\"sizes\"") || text.Contains("\"colors\"") || text.Contains("\"garment\"") || text.Contains("\"detail\""))
                             interceptedJson = text;
                     }
                 }
@@ -120,6 +123,9 @@ public class MangoAdapter : IStoreAdapter, IInspectableAdapter
                     new PageWaitForSelectorOptions { Timeout = 8000 });
             }
             catch (TimeoutException) { }
+
+            // Brief wait for dynamic hydration
+            await page.WaitForTimeoutAsync(1500);
 
             var html = await page.ContentAsync();
 
@@ -162,19 +168,36 @@ public class MangoAdapter : IStoreAdapter, IInspectableAdapter
                 return domResult;
             }
 
-            // Fallback product name from title/meta if found
+            // Fallback product name and image from title/meta/dom
             var title = await page.TitleAsync();
             var cleanName = CleanTitle(title);
-
-            if (jsonLdResult != null && !string.IsNullOrWhiteSpace(jsonLdResult.Name))
+            var fallbackImage = domResult?.ImageUrl ?? jsonLdResult?.ImageUrl;
+            if (string.IsNullOrWhiteSpace(fallbackImage))
             {
-                return jsonLdResult;
+                var ogMatch = Regex.Match(html, @"<meta[^>]*property=[""']og:image[""'][^>]*content=[""']([^""']+)[""']", RegexOptions.IgnoreCase);
+                if (ogMatch.Success) fallbackImage = ogMatch.Groups[1].Value;
+            }
+
+            // If product name is valid, provide a Standard size option for one-size products
+            if (!string.IsNullOrWhiteSpace(cleanName) && !cleanName.Equals("Mango Ürün", StringComparison.OrdinalIgnoreCase))
+            {
+                var isOutOfStock = html.Contains("Tükendi", StringComparison.OrdinalIgnoreCase) ||
+                                   html.Contains("Gelince Haber Ver", StringComparison.OrdinalIgnoreCase) ||
+                                   html.Contains("out of stock", StringComparison.OrdinalIgnoreCase);
+
+                return new ProductInspectResponse(
+                    Store: StoreName,
+                    Name: cleanName,
+                    ImageUrl: fallbackImage,
+                    Url: url,
+                    Variants: new[] { new VariantAvailabilityDto("Standart", !isOutOfStock) }
+                );
             }
 
             return new ProductInspectResponse(
                 Store: StoreName,
                 Name: cleanName,
-                ImageUrl: null,
+                ImageUrl: fallbackImage,
                 Url: url,
                 Variants: Array.Empty<VariantAvailabilityDto>()
             );
