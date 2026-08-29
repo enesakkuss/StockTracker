@@ -1,4 +1,4 @@
-﻿name: Build, Test & Deploy to Oracle Cloud
+name: Build, Test & Deploy to Oracle Cloud
 
 on:
   push:
@@ -43,7 +43,7 @@ jobs:
             cd ~/StockTracker
             git fetch origin main
             git reset --hard origin/main
-            sudo docker-compose -f docker-compose.prod.yml build stocktracker-api
-            sudo docker-compose -f docker-compose.prod.yml up -d --remove-orphans
+            sudo docker compose -f docker-compose.prod.yml build stocktracker-api
+            sudo docker compose -f docker-compose.prod.yml up -d --remove-orphans
             echo "✅ Deployment completed successfully!"
-            sudo docker-compose -f docker-compose.prod.yml ps
+            sudo docker compose -f docker-compose.prod.yml ps
