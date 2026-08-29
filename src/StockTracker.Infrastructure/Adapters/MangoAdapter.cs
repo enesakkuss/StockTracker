@@ -210,7 +210,7 @@ public class MangoAdapter : IStoreAdapter, IInspectableAdapter
                     foreach (var elem in root.EnumerateArray())
                     {
                         var parsed = ParseJsonLdElement(elem, url);
-                        if (parsed != null) return parsed;
+                        if (parsed != null) return EnrichImageFromHtml(parsed, html);
                     }
                 }
                 else if (root.ValueKind == JsonValueKind.Object)
@@ -220,13 +220,13 @@ public class MangoAdapter : IStoreAdapter, IInspectableAdapter
                         foreach (var elem in graphProp.EnumerateArray())
                         {
                             var parsed = ParseJsonLdElement(elem, url);
-                            if (parsed != null) return parsed;
+                            if (parsed != null) return EnrichImageFromHtml(parsed, html);
                         }
                     }
                     else
                     {
                         var parsed = ParseJsonLdElement(root, url);
-                        if (parsed != null) return parsed;
+                        if (parsed != null) return EnrichImageFromHtml(parsed, html);
                     }
                 }
             }
@@ -234,6 +234,24 @@ public class MangoAdapter : IStoreAdapter, IInspectableAdapter
         }
 
         return null;
+    }
+
+    private static ProductInspectResponse EnrichImageFromHtml(ProductInspectResponse response, string html)
+    {
+        if (!string.IsNullOrWhiteSpace(response.ImageUrl)) return response;
+
+        var ogMatch = Regex.Match(html, @"<meta[^>]*property=[""']og:image[""'][^>]*content=[""']([^""']+)[""']", RegexOptions.IgnoreCase);
+        if (!ogMatch.Success)
+        {
+            ogMatch = Regex.Match(html, @"<meta[^>]*content=[""']([^""']+)[""'][^>]*property=[""']og:image[""']", RegexOptions.IgnoreCase);
+        }
+
+        if (ogMatch.Success && !string.IsNullOrWhiteSpace(ogMatch.Groups[1].Value))
+        {
+            return response with { ImageUrl = ogMatch.Groups[1].Value.Trim() };
+        }
+
+        return response;
     }
 
     private ProductInspectResponse? ParseJsonLdElement(JsonElement root, string url)
@@ -250,9 +268,20 @@ public class MangoAdapter : IStoreAdapter, IInspectableAdapter
         {
             if (imgProp.ValueKind == JsonValueKind.String) imageUrl = imgProp.GetString();
             else if (imgProp.ValueKind == JsonValueKind.Array && imgProp.GetArrayLength() > 0)
-                imageUrl = imgProp[0].GetString();
-            else if (imgProp.ValueKind == JsonValueKind.Object && imgProp.TryGetProperty("url", out var uProp))
-                imageUrl = uProp.GetString();
+            {
+                var first = imgProp[0];
+                if (first.ValueKind == JsonValueKind.String) imageUrl = first.GetString();
+                else if (first.ValueKind == JsonValueKind.Object)
+                {
+                    if (first.TryGetProperty("contentUrl", out var cProp)) imageUrl = cProp.GetString();
+                    else if (first.TryGetProperty("url", out var uProp)) imageUrl = uProp.GetString();
+                }
+            }
+            else if (imgProp.ValueKind == JsonValueKind.Object)
+            {
+                if (imgProp.TryGetProperty("contentUrl", out var cProp)) imageUrl = cProp.GetString();
+                else if (imgProp.TryGetProperty("url", out var uProp)) imageUrl = uProp.GetString();
+            }
         }
 
         var variants = new List<VariantAvailabilityDto>();
@@ -273,21 +302,39 @@ public class MangoAdapter : IStoreAdapter, IInspectableAdapter
                     isAvailable = CheckOfferAvailability(offersProp);
                 }
 
-                variants.Add(new VariantAvailabilityDto(vName.Trim(), isAvailable));
+                variants.Add(new VariantAvailabilityDto(NormalizeSizeLabel(vName), isAvailable));
             }
         }
-        // 2. offers array directly on Product
-        else if (root.TryGetProperty("offers", out var offersProp) && offersProp.ValueKind == JsonValueKind.Array)
+        // 2. offers array or object directly on Product
+        else if (root.TryGetProperty("offers", out var offersProp))
         {
-            foreach (var offer in offersProp.EnumerateArray())
+            if (offersProp.ValueKind == JsonValueKind.Array)
             {
-                var size = offer.TryGetProperty("size", out var sProp) ? sProp.GetString()
-                         : offer.TryGetProperty("name", out var nProp) ? nProp.GetString() : null;
-
-                if (!string.IsNullOrWhiteSpace(size))
+                foreach (var offer in offersProp.EnumerateArray())
                 {
-                    variants.Add(new VariantAvailabilityDto(size.Trim(), CheckOfferAvailability(offer)));
+                    var size = offer.TryGetProperty("size", out var sProp) ? sProp.GetString()
+                             : offer.TryGetProperty("name", out var nProp) ? nProp.GetString() : null;
+
+                    if (!string.IsNullOrWhiteSpace(size))
+                    {
+                        variants.Add(new VariantAvailabilityDto(NormalizeSizeLabel(size), CheckOfferAvailability(offer)));
+                    }
                 }
+
+                // If offers array existed but items had no explicit size (One Size / Bag / Accessory)
+                if (variants.Count == 0 && offersProp.GetArrayLength() > 0)
+                {
+                    var isAvailable = CheckOfferAvailability(offersProp[0]);
+                    variants.Add(new VariantAvailabilityDto("Standart", isAvailable));
+                }
+            }
+            else if (offersProp.ValueKind == JsonValueKind.Object)
+            {
+                var size = offersProp.TryGetProperty("size", out var sProp) ? sProp.GetString()
+                         : offersProp.TryGetProperty("name", out var nProp) ? nProp.GetString() : "Standart";
+
+                var isAvailable = CheckOfferAvailability(offersProp);
+                variants.Add(new VariantAvailabilityDto(NormalizeSizeLabel(size), isAvailable));
             }
         }
 
@@ -350,10 +397,7 @@ public class MangoAdapter : IStoreAdapter, IInspectableAdapter
                                     var sAvail = s.TryGetProperty("available", out var ap) ? ap.GetBoolean()
                                                : s.TryGetProperty("stock", out var stp) && stp.GetBoolean();
 
-                                    if (!string.IsNullOrWhiteSpace(sLabel))
-                                    {
-                                        variants.Add(new VariantAvailabilityDto(sLabel.Trim(), sAvail));
-                                    }
+                                    variants.Add(new VariantAvailabilityDto(NormalizeSizeLabel(sLabel), sAvail));
                                 }
                             }
                         }
@@ -361,7 +405,8 @@ public class MangoAdapter : IStoreAdapter, IInspectableAdapter
 
                     if (variants.Count > 0)
                     {
-                        return new ProductInspectResponse(StoreName, name, null, url, variants);
+                        var res = new ProductInspectResponse(StoreName, name, null, url, variants);
+                        return EnrichImageFromHtml(res, html);
                     }
                 }
             }
@@ -398,10 +443,7 @@ public class MangoAdapter : IStoreAdapter, IInspectableAdapter
                             var sAvail = s.TryGetProperty("available", out var ap) ? ap.GetBoolean()
                                        : s.TryGetProperty("stock", out var stp) && stp.GetBoolean();
 
-                            if (!string.IsNullOrWhiteSpace(sLabel))
-                            {
-                                variants.Add(new VariantAvailabilityDto(sLabel.Trim(), sAvail));
-                            }
+                            variants.Add(new VariantAvailabilityDto(NormalizeSizeLabel(sLabel), sAvail));
                         }
                     }
                 }
@@ -415,6 +457,22 @@ public class MangoAdapter : IStoreAdapter, IInspectableAdapter
         catch { }
 
         return null;
+    }
+
+    private static string NormalizeSizeLabel(string? label)
+    {
+        if (string.IsNullOrWhiteSpace(label)) return "Standart";
+        var trimmed = label.Trim();
+        if (trimmed.Equals("U", StringComparison.OrdinalIgnoreCase) ||
+            trimmed.Equals("TU", StringComparison.OrdinalIgnoreCase) ||
+            trimmed.Equals("UNICA", StringComparison.OrdinalIgnoreCase) ||
+            trimmed.Equals("ONE SIZE", StringComparison.OrdinalIgnoreCase) ||
+            trimmed.Equals("TEK BEDEN", StringComparison.OrdinalIgnoreCase) ||
+            trimmed.Equals("TEK EBAT", StringComparison.OrdinalIgnoreCase))
+        {
+            return "Standart";
+        }
+        return trimmed;
     }
 
     private static bool CheckOfferAvailability(JsonElement offerElem)
@@ -436,14 +494,16 @@ public class MangoAdapter : IStoreAdapter, IInspectableAdapter
     private async Task<ProductInspectResponse?> TryExtractFromDomAsync(IPage page, string url)
     {
         var name = await page.EvaluateAsync<string>(@"() => {
-            const h1 = document.querySelector('h1.product-name, h1, .product-detail-name');
+            const h1 = document.querySelector('h1.product-name, h1, .product-detail-name, [data-testid*=""product-name""]');
             return h1 ? h1.textContent.trim() : '';
         }");
 
         if (string.IsNullOrWhiteSpace(name)) return null;
 
         var imageUrl = await page.EvaluateAsync<string?>(@"() => {
-            const img = document.querySelector('.product-image img, .product-images img, img.image-zoom, [data-testid*=""product-image""] img');
+            const ogImg = document.querySelector('meta[property=""og:image""], meta[name=""twitter:image""]');
+            if (ogImg && ogImg.content) return ogImg.content;
+            const img = document.querySelector('.product-image img, .product-images img, img.image-zoom, [data-testid*=""product-image""] img, img[src*=""mango""]');
             return img ? (img.src || img.getAttribute('data-src')) : null;
         }");
 
@@ -466,6 +526,17 @@ public class MangoAdapter : IStoreAdapter, IInspectableAdapter
                 results.push({ name: cleanText, available: !isDisabled });
             }
 
+            // Fallback for one-size products (Bags, Accessories, Jewelry, Perfume)
+            if (results.length === 0) {
+                const addToBagBtn = document.querySelector('button[data-testid*=""add-to-cart""], button[data-testid*=""add-to-bag""], button[aria-label*=""Sepete""], button.product-actions__button, [data-testid*=""pdp-add-to-bag""]');
+                const outOfStockEl = document.querySelector('[data-testid*=""out-of-stock""], .out-of-stock, [aria-label*=""Tükendi""], [aria-label*=""Gelince Haber Ver""]');
+                
+                if (addToBagBtn || outOfStockEl) {
+                    const isAvailable = Boolean(addToBagBtn && !addToBagBtn.disabled && !outOfStockEl);
+                    results.push({ name: 'Standart', available: isAvailable });
+                }
+            }
+
             return JSON.stringify(results);
         }");
 
@@ -479,7 +550,7 @@ public class MangoAdapter : IStoreAdapter, IInspectableAdapter
                 var avail = item.GetProperty("available").GetBoolean();
                 if (!string.IsNullOrWhiteSpace(vName))
                 {
-                    variants.Add(new VariantAvailabilityDto(vName.Trim(), avail));
+                    variants.Add(new VariantAvailabilityDto(NormalizeSizeLabel(vName), avail));
                 }
             }
         }

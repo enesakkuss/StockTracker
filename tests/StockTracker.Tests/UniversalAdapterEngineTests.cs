@@ -144,6 +144,40 @@ public class UniversalAdapterEngineTests
         Assert.False(m.Available);
     }
 
+    [Fact]
+    public void MangoAdapter_TryExtractFromJsonLd_ParsesOneSizeBagProductCorrectly()
+    {
+        var bagJsonLdHtml = @"
+        <html>
+        <head>
+          <meta property=""og:image"" content=""https://st.mngbcn.com/photos/bag.jpg"" />
+          <script type=""application/ld+json"">
+          {
+            ""@context"": ""https://schema.org/"",
+            ""@type"": ""Product"",
+            ""name"": ""Orta boy city klapalı çanta - Kadın"",
+            ""offers"": {
+              ""@type"": ""Offer"",
+              ""price"": ""1499.99"",
+              ""priceCurrency"": ""TRY"",
+              ""availability"": ""https://schema.org/InStock""
+            }
+          }
+          </script>
+        </head>
+        </html>";
+
+        var result = _mangoAdapter.TryExtractFromJsonLd(bagJsonLdHtml, "https://shop.mango.com/tr/tr/p/kadin/canta/orta-boy-city-klapali-canta/17055819/99/00");
+
+        Assert.NotNull(result);
+        Assert.Equal("Mango", result.Store);
+        Assert.Equal("Orta boy city klapalı çanta - Kadın", result.Name);
+        Assert.Equal("https://st.mngbcn.com/photos/bag.jpg", result.ImageUrl);
+        Assert.Single(result.Variants);
+        Assert.Equal("Standart", result.Variants[0].Name);
+        Assert.True(result.Variants[0].Available);
+    }
+
     // ── 3. Products Controller & Universal API Tests ────────────────────────
 
     [Fact]
